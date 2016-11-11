@@ -27,12 +27,12 @@ Most useful functionalities are shown below:
     Iter 300/10000 loss: 0.030109
     Iter 400/10000 loss: 0.028633
     ...
-    Iter 10000/10000 loss: 0.04308
+    Iter 10000/10000 loss: 0.004308
     >>> g_optimizer.lr = 5e-4 #change learning rate
     >>> train(4,6) #customize training plan
-    Iter 6/24 loss: 0.04296
+    Iter 6/24 loss: 0.004296
     ...
-    Iter 24/24 loss: 0.04265
+    Iter 24/24 loss: 0.004265
     >>> save_params() #save model parameters manually
     >>> exit()
     $ python3 -i dnc.py #go back
@@ -42,3 +42,6 @@ Most useful functionalities are shown below:
     >>> Y_pred = fn_predict(X) #make a prediction with DNC
     >>> import matplotlib.pyplot as plt
     >>> plt.imshow(Y_pred+X); plt.show() #make a visualization of DNC prediction
+
+### Bugs/Issues
+ - 'nan' crash on rare occasion
