@@ -141,7 +141,8 @@ class AdamSGD(SGDOptimizer):
             [self.s_lr]+s_inputs_+[s_b1,s_b2,s_b1s,s_b2s],
             fetches_,
             updates=update_m+update_v+apply_grad+(updates_ if updates_ else []),
-            givens=givens_)
+            givens=givens_,
+            allow_input_downcast=True)
         return self.fn_train
 
     def fit(self, *v_x_li_):
