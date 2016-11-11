@@ -17,7 +17,7 @@ Clone this repository first. Then run `dnc.py` script in interactive mode.
     Compiling ... done
     >>>
 
-Compilation in theano is a bit slow so it may take a while. Once compiled, you can just call python functions defined in `dnc.py`. The default training task is the copy task. You may want to modify the code to introduce new tasks.
+Compilation in theano is a bit slow so it may take a while. Once compiled, you can just call python functions defined in `dnc.py`. The default training task is the conditional copy task, the network must produce input signal in same or reversed order, depending on the first "condition" signal. You may want to modify the code to introduce new tasks.
 
 Most useful functionalities are shown below:
 
