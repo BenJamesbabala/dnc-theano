@@ -13,6 +13,8 @@ This is a naive implementation of DeepMind's Differentiable Neural Computer mode
 
 Clone this repository first. Then run `dnc.py` script in interactive mode.
 
+**NOTE: If you don't run in interactive mode it will just quit silently.**
+
     $ python3 -i dnc.py
     Compiling ... done
     >>>
@@ -39,7 +41,7 @@ Most useful functionalities are shown below:
     >>> load_params() #load previously saved model parameters
     >>> X,Y = gen_episode() #generate a test data point
     >>> fn_rst() #reset DNC states
-    >>> Y_pred = fn_predict(X) #make a prediction with DNC
+    >>> Y_pred = predict(X) #make a prediction with DNC
     >>> import matplotlib.pyplot as plt
     >>> plt.imshow(Y_pred+X); plt.show() #make a visualization of DNC prediction
 

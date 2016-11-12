@@ -1,15 +1,13 @@
+from __future__ import print_function
 import sys
 from random import randint
 
 import numpy as np
 import theano as th
 import theano.tensor as T
-from theano.scan_module import until
 
 import layers as lyr
-from optimize import AdamSGD, VanillaSGD
-
-th.config.floatX = 'float32'
+from optimize import AdamSGD
 
 #hyperparameters are in CAPS
 SEQ_LEN = 32
@@ -21,6 +19,21 @@ N_READS = 4 #number of read heads
 B_SIZE = 32 #unused for now
 LR = 1e-3 #learn rate
 EPS = 1e-6 #to avoid division by zero
+BPTT_STEPS = -1 #limit BPTT depth, -1 -> BP through whole sequence
+
+
+#temporary hack for theano issue #5197 at github
+#TODO: revert to normal implementation once the issue is fixed
+if th.config.device[:3] == 'cpu':
+    th.config.floatX = 'float64'
+    def op_cumprod_hack(s_x_, axis_=None):
+        return T.extra_ops.cumprod(s_x_*0.99+0.01, axis=axis_)
+else:
+    th.config.floatX = 'float32'
+    def op_cumprod_hack(s_x_, axis_=None):
+        #due to cumprod has only CPU implementation
+        return T.exp(T.extra_ops.cumsum(T.log(s_x_*0.99+0.01), axis=axis_))
+
 
 g_params = {}
 g_states = {}
@@ -28,19 +41,11 @@ g_optimizer = AdamSGD()
 g_optimizer.lr = LR
 fn_predict = None
 
-#temporal hack for theano issue #5197 at github
-#TODO: revert to normal implementation once the issue is fixed
-if th.config.device[:3] == 'cpu':
-    th.config.floatX = 'float64'
-    def op_cumprod_hack(s_x_, axis_=None):
-        return T.extra_ops.cumprod(s_x_*0.99+0.01, axis=axis_)
-else:
-    def op_cumprod_hack(s_x_, axis_=None):
-        #due to cumprod has only CPU implementation
-        return T.exp(T.extra_ops.cumsum(T.log(s_x_*0.99+0.01), axis=axis_))
 
 def build_model():
     global g_params, g_states, g_optimizer, fn_predict, fn_rst
+    global SEQ_LEN, N_CELLS, CELL_SIZE, N_READS, INP_DIMS, OUT_DIMS
+    global BPTT_STEPS, LR, EPS
     ctrl_inp_size = CELL_SIZE*N_READS+INP_DIMS
     itrface_size = CELL_SIZE*N_READS+3*CELL_SIZE+5*N_READS+3
     ctrl_wm_size = OUT_DIMS+itrface_size
@@ -184,7 +189,8 @@ def build_model():
     s_outputs_li, _ = th.scan(
         dnc_step,
         sequences=[s_x_li],
-        outputs_info=[None]+v_states_li
+        outputs_info=[None]+v_states_li,
+        truncate_gradient=BPTT_STEPS
     )
 
     s_y_li = s_outputs_li[0]
@@ -220,8 +226,7 @@ def gen_episode(lenr_ =(2,4)):
     tot_len = data_len*2+4
     offset = randint(0,SEQ_LEN-1-tot_len)
     m = np.random.binomial(1,0.5,(data_len,INP_DIMS))
-    coinflip = randint(0,1)
-    if coinflip:
+    if randint(0,1):
         X[offset:offset+1,INP_DIMS//2:] = 1.
         X[1+offset:1+offset+data_len] = m
         Y[offset+data_len+4:offset+4+data_len*2] = m
@@ -231,26 +236,26 @@ def gen_episode(lenr_ =(2,4)):
         Y[offset+data_len+4:offset+4+data_len*2] = m[::-1]
     return X, Y
 
-def save_params():
+def save_params(filename_='params.pkl'):
     global g_params, g_states
-    with open('params.pkl','wb') as f:
+    with open(filename_,'wb') as f:
         lyr.save_params(g_params, f)
         lyr.save_params(g_states, f)
 
-def load_params():
+def load_params(filename_='params.pkl'):
     global g_params, g_states
-    with open('params.pkl','rb') as f:
+    with open(filename_,'rb') as f:
         lyr.load_params(g_params, f)
         lyr.load_params(g_states, f)
 
-def train(nsess_=100, nitr_=100, lenr_=(2,4)):
+def train(nsess_=100, nitr_=100, lenr_=(2,4), savfile_='params.pkl'):
     '''
     Trains model for some sessions, parameters are automatically saved to file after each session.
 
     Args:
-        nsess_: number of training episodes.
-        nitr_: number of iteration.
-        lenr_: signal length range of copy task, must be tuple.
+        nsess_: number of training sessions.
+        nitr_: number of iterations for each session.
+        lenr_: signal length range of copy task, must be 2-tuple of int.
     '''
     try:
         for i in range(nsess_):
@@ -264,7 +269,7 @@ def train(nsess_=100, nitr_=100, lenr_=(2,4)):
             else:
                 loss /= nitr_
                 print('\nIter %d/%d loss: %f'%((i+1)*nitr_,nsess_*nitr_,loss))
-                save_params()
+                save_params(savfile_)
                 continue
             break
         else:
@@ -275,4 +280,5 @@ def train(nsess_=100, nitr_=100, lenr_=(2,4)):
     except KeyboardInterrupt:
         print('User hit CTRL-C, stop.')
 
-build_model()
+if __name__ == '__main__':
+    build_model()

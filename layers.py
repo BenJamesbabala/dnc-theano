@@ -27,7 +27,7 @@ def load_params(p_, f_):
     for k,v in di.items():
         p_[k].set_value(v)
 
-def get_variable(name_, shape_, init_range_=None, dtype_=th.config.floatX):
+def get_variable(name_, shape_, init_range_=None, dtype_=None):
     '''
     get a shared tensor variable with name_, return existing one if exists, otherwise create a new one
     behaves like tf.get_variable(.)
@@ -42,6 +42,8 @@ def get_variable(name_, shape_, init_range_=None, dtype_=th.config.floatX):
     if name_ in _g_params_di:
         #TODO: add shape/dtype check?
         return _g_params_di[name_]
+    if dtype_ is None:
+        dtype_=th.config.floatX
     if init_range_ is None:
         v = th.shared(
             np.zeros(shape_,dtype=dtype_),

@@ -1,6 +1,6 @@
 import numpy as np
 import theano as th
-T = th.tensor
+import theano.tensor as T
 
 '''Common optimizers'''
 
@@ -21,7 +21,7 @@ class ParamOptimizer(Optimizer):
 
 class SGDOptimizer(ParamOptimizer):
     '''
-    class for all SGD based optimizer
+    Abstract class for all SGD based optimizer
 
     Attribs:
         timestep:
@@ -88,7 +88,6 @@ class SGDOptimizer(ParamOptimizer):
         self.timestep += 1
         return self.fn_train(self.lr,*v_x_li_)
 
-
 class VanillaSGD(SGDOptimizer):
     '''
     Just calculates gradients and applys.
@@ -103,17 +102,17 @@ class VanillaSGD(SGDOptimizer):
         if type(s_inputs_) not in (list, tuple):
             s_inputs_ = [s_inputs_]
         super(VanillaSGD,self).compile(
-            s_inputs_, s_loss_, v_params_, s_reg_=s_reg_, s_grads_=s_grads, trunc_grad_=trunc_grad_)
+            s_inputs_, s_loss_, v_params_, s_reg_=s_reg_, s_grads_=s_grads_, trunc_grad_=trunc_grad_)
         apply_grad = [(p, p-g*self.s_lr) for p,g in zip( v_params_,self.s_grads)]
         self.fn_train = th.function(
             [self.s_lr]+s_inputs_,
             fetches_,
             updates=apply_grad+(updates_ if updates_ else []),
             givens=givens_,
+            allow_downcast=True,
             on_unused_input='warn'
         )
         return self.fn_train
-
 
 class AdamSGD(SGDOptimizer):
     def __init__(self, lr_=1e-3, beta_=(0.9,0.999), eps_=1e-6):
@@ -142,7 +141,9 @@ class AdamSGD(SGDOptimizer):
             fetches_,
             updates=update_m+update_v+apply_grad+(updates_ if updates_ else []),
             givens=givens_,
-            allow_input_downcast=True)
+            allow_input_downcast=True,
+            on_unused_input='warn'
+        )
         return self.fn_train
 
     def fit(self, *v_x_li_):
