@@ -31,7 +31,8 @@ fn_predict = None
 #temporal hack for theano issue #5197 at github
 #TODO: revert to normal implementation once the issue is fixed
 if th.config.device[:3] == 'cpu':
-    def op_cumprod_hack(s_x__, axis_=None):
+    th.config.floatX = 'float64'
+    def op_cumprod_hack(s_x_, axis_=None):
         return T.extra_ops.cumprod(s_x_*0.99+0.01, axis=axis_)
 else:
     def op_cumprod_hack(s_x_, axis_=None):
